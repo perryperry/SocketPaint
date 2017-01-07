@@ -1,0 +1,116 @@
+<html>
+	
+	<head>
+		<title>MuddChat</title>
+		<style type="text/css">
+			
+			#chat {
+				height:500px;
+			}
+			#contentWrap{
+				display:none;
+				margin:10px;
+				background-color: red;
+			}
+			#chatWrap{
+				position:relative;
+				float: left;
+				width: 90%;
+				height:100%;
+				border: 1px #000 solid;
+			}
+			#users{
+				position: relative;
+				float:right;
+				width: 8%;
+				right: 1%;
+			}
+			.error {
+				color : red;
+			}
+			.privateMsg {
+				color : blue;
+			}
+			.title {
+				position:relative;
+				width: 100%;
+				background-color: red;
+				color:white;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="nickWrap" >
+			<p>Enter a username:<p>
+			<form id="setNick" >
+				<input size="35" id="nickname"></input>
+				<input type="submit"> </input>
+			</form>
+		</div>
+		<div id="contentWrap" >
+			<div id="chatWrap">
+				<div id="chat"></div>
+				<form id="send-message" >
+					<input size="35" id="message"></input>	
+					<input type="submit"></input>
+				</form>
+			</div>
+			<div id="users" ></div>
+		</div>
+
+		<canvas id="canvas" ></canvas>
+		
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="/socket.io/socket.io.js" ></script>
+	<script>
+		$(document).ready(function(){
+			var socket = io.connect();
+			var $nickForm = $('#setNick');
+			var $nickError = $('#nickError');
+			var $nickBox = $('#nickname');
+			var $users = $('#users');
+			var $messageForm = $('#send-message');
+			var $messageBox = $('#message');
+			var $chat = $('#chat');
+$('contentWrap').show();
+			$nickForm.submit(function(e){
+				console.log("Submitting user name");
+				e.preventDefault();
+				socket.emit('new user', $nickBox.val(),function(data){
+					if(data) {
+						$('#nickWrap').hide();
+						$('#contentWrap').show();
+					} else {
+						$nickError.html('That username is already taken');
+					}
+				});
+				$nickBox.val('');
+			});
+
+			$messageForm.submit(function(e){
+				e.preventDefault();
+				socket.emit('send-message', $messageBox.val(), function(data) {
+					$chat.append('<span class="error"><b>' + data + "<span><hr>");
+				});
+				$messageBox.val('');
+			});
+
+			socket.on('new-message', function(data){
+				$chat.append('<span><b>' + data.nick + ': </b>' + data.msg + "<span><hr>");
+			});
+			socket.on('usernames', function(data){
+				var html = '<span class="title">MuddChat</span><hr>';
+				for(i=0; i < data.length; i ++) {
+					html += data[i] + '<br/>';
+				}
+				$users.html(html);
+			});
+
+			socket.on('private-message', function(data){
+				$chat.append('<span class="privateMsg" ><b>' + data.nick + ': </b>' + data.msg + "</span><hr>");
+			});
+		});
+	</script>
+	</body>
+</html>
